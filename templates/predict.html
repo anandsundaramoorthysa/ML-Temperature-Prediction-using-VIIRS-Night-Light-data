@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Predict - ML-Driven Urbanization Impact Analysis{% endblock %}
+
+{% block content %}
+<!-- Interactive Prediction Tool -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card custom-card">
+            <div class="card-header bg-success">
+                <h3 class="mb-0"><i class="bi bi-calculator-fill"></i> Interactive Prediction Tool</h3>
+            </div>
+            <div class="card-body">
+                <p class="lead">Enter a year, month, and nightlight intensity to predict average monthly temperature. The prediction uses our trained machine learning models with monthly resolution data (2014-2024).</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Alert -->
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i> <strong>Error:</strong> {{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<!-- Prediction Form -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card custom-card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-input-cursor-text"></i> Enter Prediction Parameters</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/predict" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="year" class="form-label">
+                            <i class="bi bi-calendar"></i> Year
+                        </label>
+                        <input type="number" class="form-control form-control-lg" id="year" name="year" 
+                               value="{{ year if year else '' }}" 
+                               min="2014" step="1" required
+                               placeholder="e.g., 2025">
+                        <div class="form-text">Enter any year from 2014 onwards (2014-2024: historical, 2025+: future prediction)</div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="month" class="form-label">
+                            <i class="bi bi-calendar-month"></i> Month
+                        </label>
+                        <select class="form-select form-select-lg" id="month" name="month" required>
+                            <option value="">Select Month</option>
+                            <option value="1" {% if month == 1 %}selected{% endif %}>January</option>
+                            <option value="2" {% if month == 2 %}selected{% endif %}>February</option>
+                            <option value="3" {% if month == 3 %}selected{% endif %}>March</option>
+                            <option value="4" {% if month == 4 %}selected{% endif %}>April</option>
+                            <option value="5" {% if month == 5 %}selected{% endif %}>May</option>
+                            <option value="6" {% if month == 6 %}selected{% endif %}>June</option>
+                            <option value="7" {% if month == 7 %}selected{% endif %}>July</option>
+                            <option value="8" {% if month == 8 %}selected{% endif %}>August</option>
+                            <option value="9" {% if month == 9 %}selected{% endif %}>September</option>
+                            <option value="10" {% if month == 10 %}selected{% endif %}>October</option>
+                            <option value="11" {% if month == 11 %}selected{% endif %}>November</option>
+                            <option value="12" {% if month == 12 %}selected{% endif %}>December</option>
+                        </select>
+                        <div class="form-text">Select the month (1-12)</div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="nightlight" class="form-label">
+                            <i class="bi bi-lightbulb"></i> Nightlight Intensity
+                        </label>
+                        <input type="number" class="form-control form-control-lg" id="nightlight" name="nightlight" 
+                               value="{{ nightlight if nightlight else '' }}" 
+                               min="0" max="100" step="0.1" required
+                               placeholder="e.g., 22.5">
+                        <div class="form-text">VIIRS nightlight intensity (typically ~10-25)</div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="bi bi-arrow-right-circle"></i> Predict Temperature
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Prediction Results -->
+{% if predictions %}
+<div class="row mb-4">
+    <div class="col-12">
+        {% if is_extrapolation %}
+        <div class="alert alert-warning border-warning" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Extrapolation Warning</h5>
+            <p class="mb-0">
+                <strong>This is a FUTURE PREDICTION (year > 2024).</strong> The model was trained on data from 2014-2024. 
+                Predictions beyond this period are extrapolations and may be less reliable due to:
+            </p>
+            <ul class="mb-0 mt-2">
+                <li>Unknown future climate trends and natural variability</li>
+                <li>Potential changes in urbanization patterns</li>
+                <li>Model uncertainty increases with distance from training period</li>
+                <li>Assumes historical relationships continue into the future</li>
+            </ul>
+        </div>
+        {% else %}
+        <div class="alert alert-info border-info" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-info-circle-fill"></i> Historical Period Prediction</h5>
+            <p class="mb-0">
+                This prediction is within the training data period (2014-2024). The model can interpolate 
+                between known data points but may not reflect actual historical values if the exact conditions 
+                were not present in the training set.
+            </p>
+        </div>
+        {% endif %}
+        
+        <div class="alert alert-success border-success mt-3" role="alert">
+            <h4 class="alert-heading"><i class="bi bi-check-circle-fill"></i> Prediction Results</h4>
+            <hr>
+            <p class="mb-3">
+                <strong>Input:</strong> Year = <span class="badge bg-primary">{{ year }}</span>, 
+                Month = <span class="badge bg-success">{{ month }}</span>,
+                Nightlight = <span class="badge bg-info">{{ nightlight }}</span>
+            </p>
+        </div>
+        
+        <div class="card custom-card">
+            <div class="card-header bg-success">
+                <h4 class="mb-0"><i class="bi bi-thermometer-half"></i> Predicted Temperature</h4>
+            </div>
+            <div class="card-body text-center">
+                {% if best_prediction and best_prediction != "N/A" and best_prediction != "Error" %}
+                <div class="mb-4">
+                    <h5 class="text-muted mb-3">
+                        <i class="bi bi-trophy-fill text-warning"></i> Best Model Prediction
+                    </h5>
+                    <div class="mb-3">
+                        <span class="badge bg-success fs-6 px-3 py-2">
+                            <i class="bi bi-star-fill"></i> {{ best_model }}
+                        </span>
+                    </div>
+                    <div class="display-3 fw-bold text-primary mb-3">
+                        {{ best_prediction }}°C
+                    </div>
+                    <p class="text-muted mb-0">
+                        This prediction uses the best-performing model based on evaluation metrics (RMSE, MAE, R²).
+                    </p>
+                </div>
+                {% elif best_prediction == "Error" %}
+                <div class="alert alert-danger" role="alert">
+                    <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Prediction Error</h5>
+                    <p class="mb-0">Unable to generate prediction with {{ best_model }}. Please check your inputs and try again.</p>
+                </div>
+                {% else %}
+                <div class="alert alert-warning" role="alert">
+                    <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> No Prediction Available</h5>
+                    <p class="mb-0">Prediction could not be generated. Please check your inputs.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Note about model comparison -->
+        <div class="alert alert-info border-info" role="alert">
+            <p class="mb-0">
+                <i class="bi bi-info-circle"></i> <strong>Note:</strong> This prediction uses the best model ({{ best_model }}) selected based on comprehensive evaluation. 
+                To see predictions from all models and compare their performance, visit the <a href="/models" class="alert-link">Models page</a>.
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Interpretation Guidelines -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card custom-card">
+            <div class="card-header bg-info">
+                <h4 class="mb-0"><i class="bi bi-book"></i> Interpretation Guidelines</h4>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="border-start border-primary border-3 ps-3">
+                            <h6><i class="bi bi-calendar text-primary"></i> Year</h6>
+                            <p class="small mb-0">Long-term temporal trends (2014-2024). May include global warming effects and urbanization growth.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-start border-success border-3 ps-3">
+                            <h6><i class="bi bi-calendar-month text-success"></i> Month</h6>
+                            <p class="small mb-0">Seasonal variable (1-12) capturing intra-annual temperature patterns in Chennai's tropical climate.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-start border-info border-3 ps-3">
+                            <h6><i class="bi bi-lightbulb text-info"></i> Nightlight Intensity</h6>
+                            <p class="small mb-0">Monthly human activity proxy. Higher values indicate more activity, population, and economic development.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-start border-danger border-3 ps-3">
+                            <h6><i class="bi bi-thermometer-half text-danger"></i> Prediction</h6>
+                            <p class="small mb-0">Predicted average monthly temperature (°C) for the specified year-month combination with given nightlight level.</p>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <p class="mb-0">
+                    <strong>Note:</strong> Predictions are based on monthly historical patterns (2014-2024) and may not account 
+                    for future changes in climate, urbanization patterns, or other factors. Monthly resolution captures 
+                    seasonal variations that yearly data cannot.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Historical Reference Values -->
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info border-info" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-clock-history"></i> Historical Reference Values</h5>
+            <p class="mb-2">For context, historical monthly nightlight values in Chennai (2014-2024):</p>
+            <div class="row g-2 mb-3">
+                <div class="col-md-3">
+                    <span class="badge bg-primary">2014: ~14.0-15.0</span>
+                </div>
+                <div class="col-md-3">
+                    <span class="badge bg-info">2018: ~16.0-17.0</span>
+                </div>
+                <div class="col-md-3">
+                    <span class="badge bg-info">2022: ~19.0-20.0</span>
+                </div>
+                <div class="col-md-3">
+                    <span class="badge bg-danger">2024: ~21.0-22.0</span>
+                </div>
+            </div>
+            <p class="mb-2"><strong>Note:</strong> Values vary by month (seasonal patterns). Overall trend shows increasing nightlight intensity over time.</p>
+            <hr>
+            <p class="mb-0">Monthly nightlight values capture both long-term urban growth trends and short-term seasonal variations in human activity.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

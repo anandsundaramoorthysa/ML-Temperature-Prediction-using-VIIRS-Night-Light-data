@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Home - ML-Driven Urbanization Impact Analysis{% endblock %}
+
+{% block content %}
+<!-- Project Overview -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card custom-card">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="bi bi-bullseye"></i> Research Objective</h3>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    This project demonstrates how urbanization influences local climate by predicting average <strong>monthly</strong> temperature 
+                    using <strong>Year</strong>, <strong>Month</strong>, and <strong>VIIRS Nighttime Light intensity</strong> as inputs. 
+                    Monthly resolution provides more data points and reduces overfitting. Nightlight intensity serves as a proxy for human activity patterns.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Findings -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card custom-card border-info">
+            <div class="card-header bg-info text-white">
+                <h3 class="mb-0"><i class="bi bi-lightbulb"></i> Key Findings</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <div class="icon-box me-3">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <div>
+                                <h5>Human Activity Proxy</h5>
+                                <p class="mb-0">VIIRS monthly nighttime light intensity is used as an indicator of human activity patterns</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <div class="icon-box me-3" style="background: #27ae60;">
+                                <i class="bi bi-thermometer-half"></i>
+                            </div>
+                            <div>
+                                <h5>Temperature Prediction</h5>
+                                <p class="mb-0">Multiple ML models successfully predict monthly temperature based on year, month, and human activity patterns</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <div class="icon-box me-3" style="background: #5dade2;">
+                                <i class="bi bi-graph-up"></i>
+                            </div>
+                            <div>
+                                <h5>Model Performance</h5>
+                                <p class="mb-0">All models show significant predictive power, with {% if best_model %}{{ best_model }}{% else %}Gradient Boosting{% endif %} performing best</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <div class="icon-box me-3" style="background: #3498db;">
+                                <i class="bi bi-link-45deg"></i>
+                            </div>
+                            <div>
+                                <h5>Human Activity Impact</h5>
+                                <p class="mb-0">Analysis reveals association between human activity (monthly nightlights) and local temperature patterns</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Important Disclaimer -->
+<div class="alert alert-info border-info" role="alert">
+    <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Important Academic Disclaimer</h5>
+    <p class="mb-0">
+        <strong>This analysis demonstrates ASSOCIATION and INFLUENCE, NOT CAUSATION.</strong> While we observe relationships 
+        between urbanization indicators and temperature, correlation does not establish causal mechanisms. Other factors such as 
+        global climate change, natural variability, and regional patterns may contribute to observed relationships.
+    </p>
+</div>
+
+<!-- Model Performance Summary -->
+{% if model_comparison %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="gradient-text mb-4"><i class="bi bi-bar-chart"></i> Model Performance Summary</h2>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>RMSE (°C)</th>
+                        <th>MAE (°C)</th>
+                        <th>R² Score</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for model in model_comparison %}
+                    <tr {% if model.Model == best_model %}class="table-success"{% endif %}>
+                        <td>
+                            <strong>{{ model.Model }}{% if model.Model == best_model %} 
+                                <span class="badge bg-success"><i class="bi bi-star-fill"></i> Best</span>
+                            {% endif %}</strong>
+                        </td>
+                        <td>{{ "%.4f"|format(model.RMSE) }}</td>
+                        <td>{{ "%.4f"|format(model.MAE) }}</td>
+                        <td>
+                            <span class="badge {% if model['R² Score'] > 0.9 %}bg-success{% elif model['R² Score'] > 0.7 %}bg-info{% else %}bg-secondary{% endif %}">
+                                {{ "%.4f"|format(model['R² Score']) }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if model.Model == best_model %}
+                                <span class="badge bg-success">Selected</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Available</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> Model comparison data will be available after running the evaluation script.
+</div>
+{% endif %}
+
+<!-- Quick Navigation Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="card custom-card h-100 text-center">
+            <div class="card-body">
+                <div class="icon-box mx-auto mb-3">
+                    <i class="bi bi-database"></i>
+                </div>
+                <h5 class="card-title">Dataset</h5>
+                <p class="card-text">Explore the temperature and nightlight datasets used in this analysis.</p>
+                <a href="/dataset" class="btn btn-primary">
+                    <i class="bi bi-arrow-right"></i> View Dataset
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="card custom-card h-100 text-center">
+            <div class="card-body">
+                <div class="icon-box mx-auto mb-3" style="background: #5dade2;">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <h5 class="card-title">Models</h5>
+                <p class="card-text">Compare machine learning models and their performance metrics.</p>
+                <a href="/models" class="btn btn-primary">
+                    <i class="bi bi-arrow-right"></i> View Models
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="card custom-card h-100 text-center">
+            <div class="card-body">
+                <div class="icon-box mx-auto mb-3" style="background: #27ae60;">
+                    <i class="bi bi-calculator"></i>
+                </div>
+                <h5 class="card-title">Predict</h5>
+                <p class="card-text">Make temperature predictions using our trained models.</p>
+                <a href="/predict" class="btn btn-primary">
+                    <i class="bi bi-arrow-right"></i> Try Prediction
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="card custom-card h-100 text-center">
+            <div class="card-body">
+                <div class="icon-box mx-auto mb-3" style="background: #3498db;">
+                    <i class="bi bi-info-circle"></i>
+                </div>
+                <h5 class="card-title">About</h5>
+                <p class="card-text">Learn about methodology, limitations, and academic considerations.</p>
+                <a href="/about" class="btn btn-primary">
+                    <i class="bi bi-arrow-right"></i> Learn More
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Methodology Overview -->
+<div class="row">
+    <div class="col-12">
+        <div class="card custom-card">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="bi bi-list-check"></i> Methodology Overview</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-4">
+                        <div class="border-start border-primary border-3 ps-3">
+                            <h6><strong>1. Data Preprocessing</strong></h6>
+                            <p class="small mb-0">Validated and aggregated temperature data to monthly averages (2014-2024), merged with monthly nightlight data</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="border-start border-info border-3 ps-3">
+                            <h6><strong>2. Exploratory Analysis</strong></h6>
+                            <p class="small mb-0">Analyzed relationships using visualizations and correlation analysis</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="border-start border-success border-3 ps-3">
+                            <h6><strong>3. Model Training</strong></h6>
+                            <p class="small mb-0">Trained three models (Multiple Linear Regression, Random Forest, Gradient Boosting) using Year, Month, NightLight features with time-based split</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="border-start border-secondary border-3 ps-3">
+                            <h6><strong>4. Evaluation</strong></h6>
+                            <p class="small mb-0">Compared models using RMSE, MAE, and R² metrics with overfitting detection (training vs testing)</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="border-start border-danger border-3 ps-3">
+                            <h6><strong>5. Interpretation</strong></h6>
+                            <p class="small mb-0">Analyzed feature importance (Year, Month, NightLight) to understand human activity's contribution</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

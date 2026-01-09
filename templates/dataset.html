@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset - ML-Driven Urbanization Impact Analysis{% endblock %}
+
+{% block content %}
+<!-- Data Sources -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card custom-card">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="bi bi-database-fill"></i> Data Sources</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="border-start border-primary border-4 ps-3">
+                            <h5><i class="bi bi-file-earmark-spreadsheet text-primary"></i> Chennai.csv</h5>
+                            <p class="mb-2"><strong>Content:</strong> Climate dataset containing hourly/daily temperature data for Chennai (2010-2024)</p>
+                            <p class="mb-0"><strong>Key Variable:</strong> <code>temperature_2m</code> (aggregated to monthly averages)</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border-start border-info border-4 ps-3">
+                            <h5><i class="bi bi-file-earmark-data text-info"></i> Chennai_VIIRS_Monthly_Nightlights_2014_2024.csv</h5>
+                            <p class="mb-2"><strong>Content:</strong> VIIRS nighttime light intensity values (monthly, 2014-2024)</p>
+                            <p class="mb-0"><strong>Key Variables:</strong> <code>Year</code>, <code>Month</code>, <code>NightLight</code></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Processing -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card custom-card">
+            <div class="card-header bg-info">
+                <h3 class="mb-0"><i class="bi bi-gear-fill"></i> Data Processing</h3>
+            </div>
+            <div class="card-body">
+                <p>The raw datasets underwent comprehensive preprocessing:</p>
+                <ul class="list-group list-group-flush">
+                                <li class="list-group-item"><i class="bi bi-check-circle-fill text-success me-2"></i>Temperature data aggregated from hourly/daily to monthly averages</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle-fill text-success me-2"></i>Missing values and duplicates validated</li>
+                    <li class="list-group-item"><i class="bi bi-check-circle-fill text-success me-2"></i>Data types and ranges checked for consistency</li>
+                                <li class="list-group-item"><i class="bi bi-check-circle-fill text-success me-2"></i>Merged on Year and Month columns to create unified monthly dataset</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dataset Statistics -->
+{% if data_stats %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="gradient-text mb-4"><i class="bi bi-bar-chart-line"></i> Dataset Statistics</h2>
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-3">
+                <div class="card text-center border-primary">
+                    <div class="card-body">
+                        <i class="bi bi-123 text-primary" style="font-size: 2rem;"></i>
+                        <h4 class="mt-2">{{ data_stats.total_samples }}</h4>
+                        <p class="mb-0 text-muted">Total Samples</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card text-center border-info">
+                    <div class="card-body">
+                        <i class="bi bi-calendar-range text-info" style="font-size: 2rem;"></i>
+                        <h4 class="mt-2">{{ data_stats.year_range }}</h4>
+                        <p class="mb-0 text-muted">Year Range</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card text-center border-warning">
+                    <div class="card-body">
+                        <i class="bi bi-lightbulb text-warning" style="font-size: 2rem;"></i>
+                        <h4 class="mt-2">{{ data_stats.nightlight_range }}</h4>
+                        <p class="mb-0 text-muted">Nightlight Range</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card text-center border-danger">
+                    <div class="card-body">
+                        <i class="bi bi-thermometer-half text-danger" style="font-size: 2rem;"></i>
+                        <h4 class="mt-2">{{ data_stats.temp_range }}</h4>
+                        <p class="mb-0 text-muted">Temperature Range</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Sample Data -->
+{% if sample_data %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="gradient-text mb-4"><i class="bi bi-table"></i> Sample Data</h2>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead>
+                    <tr>
+                        <th>Year</th>
+                        <th>Month</th>
+                        <th><i class="bi bi-lightbulb"></i> Nightlight Intensity</th>
+                        <th><i class="bi bi-thermometer-half"></i> Avg Monthly Temperature (°C)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in sample_data %}
+                    <tr>
+                        <td><strong>{{ row.Year }}</strong></td>
+                        <td><strong>{{ row.Month }}</strong></td>
+                        <td>{{ "%.2f"|format(row.NightLight) }}</td>
+                        <td>{{ "%.2f"|format(row.Avg_Monthly_Temperature) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Variable Descriptions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card custom-card">
+            <div class="card-header bg-success">
+                <h3 class="mb-0"><i class="bi bi-info-circle-fill"></i> Variable Descriptions</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Variable</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code class="text-primary">Year</code></td>
+                                <td>Temporal variable indicating the observation year (2014-2024)</td>
+                                <td><span class="badge bg-secondary">Integer</span></td>
+                            </tr>
+                            <tr>
+                                <td><code class="text-success">Month</code></td>
+                                <td>Seasonal variable indicating the month (1-12). Captures intra-annual temperature patterns.</td>
+                                <td><span class="badge bg-success">Integer</span></td>
+                            </tr>
+                            <tr>
+                                <td><code class="text-info">NightLight</code></td>
+                                <td>VIIRS nighttime light intensity (proxy for human activity). Higher values indicate more human activity, population density, and economic activity. Monthly resolution captures short-term patterns.</td>
+                                <td><span class="badge bg-info">Float</span></td>
+                            </tr>
+                            <tr>
+                                <td><code class="text-danger">Avg_Monthly_Temperature</code></td>
+                                <td>Average monthly temperature in degrees Celsius. Calculated by aggregating hourly/daily temperature readings for each month.</td>
+                                <td><span class="badge bg-danger">Float</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Why Nightlights -->
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-primary border-primary" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-question-circle-fill"></i> Why Nightlights as Urbanization Proxy?</h5>
+            <p>VIIRS (Visible Infrared Imaging Radiometer Suite) nighttime light intensity is a widely-used proxy for urbanization because:</p>
+            <hr>
+            <ul class="mb-0">
+                <li>Urban areas produce significantly more nighttime light than rural areas</li>
+                <li>Light intensity correlates with population density and economic activity</li>
+                <li>Provides consistent, remotely-sensed data across large areas</li>
+                <li>Complements traditional census-based urbanization metrics</li>
+            </ul>
+            <hr>
+            <p class="mb-0"><strong>Note:</strong> Nightlights are a proxy, not a direct measure. Other factors (industrial activity, energy policies) may also influence light intensity.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

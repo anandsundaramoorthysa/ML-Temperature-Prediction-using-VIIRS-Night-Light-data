@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+
+# Model files 
+# NOTE: Uncomment below to exclude models from git (not recommended for Hugging Face deployment)
+# models/*.pkl
+
+# Generated outputs 
+# NOTE: Uncomment below to exclude outputs from git (not recommended for Hugging Face deployment)
+# outputs/csv/*.csv
+# outputs/png/*.png
+
+# Logs
+*.log
+
