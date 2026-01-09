@@ -1,7 +1,5 @@
 # 🌡️ ML Temperature Prediction using VIIRS Night Light Data
 
----
-
 ## 📑 Table of Contents
 
 * About Project
@@ -13,8 +11,6 @@
 * License
 * Contact Me
 
----
-
 ## About Project
 
 This project is a **Machine Learning–based Temperature Prediction System** developed for **Chennai, India**, using **VIIRS Nighttime Light intensity** as an input feature along with **Year** and **Month**.
@@ -22,8 +18,6 @@ This project is a **Machine Learning–based Temperature Prediction System** dev
 The application predicts **monthly average temperature** and provides an interactive web interface to test predictions using trained machine learning models. The project demonstrates how satellite-derived nightlight data can be integrated with climate data for predictive analytics.
 
 This is a **standalone ML project** focused on **prediction and evaluation**, not causal climate analysis.
-
----
 
 ## Installation
 
@@ -49,8 +43,6 @@ venv\Scripts\activate           # On Windows
 ```bash
 pip install -r requirements.txt
 ```
-
----
 
 ## Run the Project
 
@@ -95,8 +87,6 @@ http://127.0.0.1:7860
 * Click **Predict Temperature**
 * View the predicted monthly average temperature
 
----
-
 ## Features
 
 * 🌡️ **Monthly Temperature Prediction**
@@ -113,8 +103,6 @@ http://127.0.0.1:7860
 * 🔍 **Feature Importance Analysis**
 * 🖥️ **Interactive Web UI using Flask**
 * 🚀 **Deployment-ready (Hugging Face / Render)**
-
----
 
 ## Contribution
 
@@ -133,14 +121,10 @@ Suggestions for improvements include:
 * Model optimization
 * Additional visualization features
 
----
-
 ## License
 
 This project is licensed under the **MIT License**.
 You are free to use, modify, and distribute this project with attribution.
-
----
 
 ## Contact Me
 
