@@ -83,21 +83,71 @@ print("Models loaded successfully!")
 # ROUTES
 # ============================================================================
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
     """
-    Home page - Project overview
+    Home page - Temperature prediction tool
     """
-    return render_template('index.html',
-                         best_model=best_model_name,
-                         model_comparison=model_comparison.to_dict('records') if model_comparison is not None else None)
+    if request.method == 'POST':
+        try:
+            # Get input from form
+            year = float(request.form.get('year'))
+            month = float(request.form.get('month'))
+            nightlight = float(request.form.get('nightlight'))
+            
+            # Validate inputs
+            if year < 2014:
+                return render_template('index.html',
+                                     error="Year must be 2014 or later")
+            
+            # Check if prediction is extrapolation (beyond training data)
+            is_extrapolation = year > 2024
+            
+            if month < 1 or month > 12:
+                return render_template('index.html',
+                                     error="Month must be between 1 and 12")
+            
+            if nightlight < 0 or nightlight > 100:
+                return render_template('index.html',
+                                     error="Nightlight intensity should be between 0 and 100")
+            
+            # Prepare input for prediction (Year, Month, NightLight)
+            input_data = np.array([[year, month, nightlight]])
+            
+            # Get predictions from all available models
+            predictions = {}
+            for model_name, model in models.items():
+                try:
+                    pred = model.predict(input_data)[0]
+                    predictions[model_name] = round(pred, 3)
+                except:
+                    predictions[model_name] = "Error"
+            
+            # Get best model prediction
+            best_prediction = predictions.get(best_model_name, "N/A")
+            
+            return render_template('index.html',
+                                 year=year,
+                                 month=month,
+                                 nightlight=nightlight,
+                                 predictions=predictions,
+                                 best_model=best_model_name,
+                                 best_prediction=best_prediction,
+                                 is_extrapolation=is_extrapolation)
+        
+        except Exception as e:
+            return render_template('index.html',
+                                 error=f"Error: {str(e)}")
+    
+    # GET request - show form
+    return render_template('index.html')
 
-@app.route('/dataset')
-def dataset():
+@app.route('/analysis', methods=['GET', 'POST'])
+def research():
     """
-    Dataset information page
+    Research page - Dataset, models, and analysis information
     """
-    # Load sample data for display
+    # Load dataset statistics
     try:
         sample_data = pd.read_csv('outputs/csv/Chennai_Monthly_Aggregated.csv')
         data_stats = {
@@ -106,20 +156,9 @@ def dataset():
             'nightlight_range': f"{sample_data['NightLight'].min():.2f} - {sample_data['NightLight'].max():.2f}",
             'temp_range': f"{sample_data['Avg_Monthly_Temperature'].min():.2f}°C - {sample_data['Avg_Monthly_Temperature'].max():.2f}°C"
         }
-        sample_rows = sample_data.head(10).to_dict('records')
     except:
         data_stats = None
-        sample_rows = None
     
-    return render_template('dataset.html',
-                         data_stats=data_stats,
-                         sample_data=sample_rows)
-
-@app.route('/models', methods=['GET', 'POST'])
-def models_page():
-    """
-    Model comparison page with prediction comparison
-    """
     predictions = None
     prediction_input = None
     is_extrapolation = False
@@ -133,25 +172,31 @@ def models_page():
             
             # Validate inputs
             if year < 2014:
-                return render_template('models.html',
+                return render_template('analysis.html',
                                      error="Year must be 2014 or later",
+                                     data_stats=data_stats,
                                      model_comparison=model_comparison.to_dict('records') if model_comparison is not None else None,
                                      best_model=best_model_name,
-                                     feature_importance=feature_importance.to_dict('records') if feature_importance is not None else None)
+                                     feature_importance=feature_importance.to_dict('records') if feature_importance is not None else None,
+                                     correlation_results=correlation_results.to_dict('records') if correlation_results is not None else None)
             
             if month < 1 or month > 12:
-                return render_template('models.html',
+                return render_template('analysis.html',
                                      error="Month must be between 1 and 12",
+                                     data_stats=data_stats,
                                      model_comparison=model_comparison.to_dict('records') if model_comparison is not None else None,
                                      best_model=best_model_name,
-                                     feature_importance=feature_importance.to_dict('records') if feature_importance is not None else None)
+                                     feature_importance=feature_importance.to_dict('records') if feature_importance is not None else None,
+                                     correlation_results=correlation_results.to_dict('records') if correlation_results is not None else None)
             
             if nightlight < 0 or nightlight > 100:
-                return render_template('models.html',
+                return render_template('analysis.html',
                                      error="Nightlight intensity should be between 0 and 100",
+                                     data_stats=data_stats,
                                      model_comparison=model_comparison.to_dict('records') if model_comparison is not None else None,
                                      best_model=best_model_name,
-                                     feature_importance=feature_importance.to_dict('records') if feature_importance is not None else None)
+                                     feature_importance=feature_importance.to_dict('records') if feature_importance is not None else None,
+                                     correlation_results=correlation_results.to_dict('records') if correlation_results is not None else None)
             
             # Check if prediction is extrapolation
             is_extrapolation = year > 2024
@@ -175,89 +220,28 @@ def models_page():
             }
         
         except Exception as e:
-            return render_template('models.html',
+            return render_template('analysis.html',
                                  error=f"Error: {str(e)}",
+                                 data_stats=data_stats,
                                  model_comparison=model_comparison.to_dict('records') if model_comparison is not None else None,
                                  best_model=best_model_name,
-                                 feature_importance=feature_importance.to_dict('records') if feature_importance is not None else None)
+                                 feature_importance=feature_importance.to_dict('records') if feature_importance is not None else None,
+                                 correlation_results=correlation_results.to_dict('records') if correlation_results is not None else None)
     
     error_message = None
     if request.method == 'GET':
         error_message = request.args.get('error')
     
-    return render_template('models.html',
+    return render_template('analysis.html',
+                         data_stats=data_stats,
                          model_comparison=model_comparison.to_dict('records') if model_comparison is not None else None,
                          best_model=best_model_name,
                          feature_importance=feature_importance.to_dict('records') if feature_importance is not None else None,
+                         correlation_results=correlation_results.to_dict('records') if correlation_results is not None else None,
                          predictions=predictions,
                          prediction_input=prediction_input,
                          is_extrapolation=is_extrapolation,
                          error=error_message)
-
-@app.route('/predict', methods=['GET', 'POST'])
-def predict():
-    """
-    Prediction page - Interactive temperature prediction
-    """
-    if request.method == 'POST':
-        try:
-            # Get input from form
-            year = float(request.form.get('year'))
-            month = float(request.form.get('month'))
-            nightlight = float(request.form.get('nightlight'))
-            
-            # Validate inputs
-            if year < 2014:
-                return render_template('predict.html',
-                                     error="Year must be 2014 or later",
-                                     models=list(models.keys()))
-            
-            # Check if prediction is extrapolation (beyond training data)
-            is_extrapolation = year > 2024
-            
-            if month < 1 or month > 12:
-                return render_template('predict.html',
-                                     error="Month must be between 1 and 12",
-                                     models=list(models.keys()))
-            
-            if nightlight < 0 or nightlight > 100:
-                return render_template('predict.html',
-                                     error="Nightlight intensity should be between 0 and 100",
-                                     models=list(models.keys()))
-            
-            # Prepare input for prediction (Year, Month, NightLight)
-            input_data = np.array([[year, month, nightlight]])
-            
-            # Get predictions from all available models
-            predictions = {}
-            for model_name, model in models.items():
-                try:
-                    pred = model.predict(input_data)[0]
-                    predictions[model_name] = round(pred, 3)
-                except:
-                    predictions[model_name] = "Error"
-            
-            # Get best model prediction
-            best_prediction = predictions.get(best_model_name, "N/A")
-            
-            return render_template('predict.html',
-                                 year=year,
-                                 month=month,
-                                 nightlight=nightlight,
-                                 predictions=predictions,
-                                 best_model=best_model_name,
-                                 best_prediction=best_prediction,
-                                 is_extrapolation=is_extrapolation,
-                                 models=list(models.keys()))
-        
-        except Exception as e:
-            return render_template('predict.html',
-                                 error=f"Error: {str(e)}",
-                                 models=list(models.keys()))
-    
-    # GET request - show form
-    return render_template('predict.html',
-                         models=list(models.keys()))
 
 @app.route('/api/predict', methods=['POST'])
 def api_predict():
@@ -307,14 +291,6 @@ def api_predict():
             'success': False,
             'error': str(e)
         }), 400
-
-@app.route('/about')
-def about():
-    """
-    About page - Methodology and limitations
-    """
-    return render_template('about.html',
-                         correlation_results=correlation_results.to_dict('records') if correlation_results is not None else None)
 
 # ============================================================================
 # RUN APPLICATION

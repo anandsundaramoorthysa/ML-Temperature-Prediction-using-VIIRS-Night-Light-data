@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis - Temperature Prediction using VIIRS Night Light data{% endblock %}
+
+{% block content %}
+<!-- Model Performance Comparison -->
+{% if model_comparison %}
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card custom-card shadow-sm">
+            <div class="card-header bg-gradient-primary text-white">
+                <h2 class="mb-0"><i class="bi bi-bar-chart-steps"></i> Model Performance Comparison</h2>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Model</th>
+                                <th><i class="bi bi-graph-down-arrow"></i> RMSE (°C)</th>
+                                <th><i class="bi bi-calculator"></i> MAE (°C)</th>
+                                <th><i class="bi bi-percent"></i> R² Score</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for model in model_comparison %}
+                            {% set model_name = "Multiple Linear Regression" if model.Model == "Linear Regression" else model.Model %}
+                            <tr {% if model.Model == best_model %}class="table-success fw-bold"{% endif %}>
+                                <td>
+                                    <strong>{{ model_name }}</strong>
+                                    {% if model.Model == best_model %}
+                                    <span class="badge bg-success ms-2"><i class="bi bi-star-fill"></i> Best</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-danger">{{ "%.4f"|format(model.RMSE) }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning text-dark">{{ "%.4f"|format(model.MAE) }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge {% if model['R² Score'] > 0.9 %}bg-success{% elif model['R² Score'] > 0.7 %}bg-info{% else %}bg-secondary{% endif %}">
+                                        {{ "%.4f"|format(model['R² Score']) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if model.Model == best_model %}
+                                        <small class="text-success"><i class="bi bi-check-circle"></i> Best overall performance</small>
+                                    {% elif model.Model == "Linear Regression" %}
+                                        <small class="text-primary"><i class="bi bi-info-circle"></i> Most interpretable (multiple features: Year, Month, NightLight)</small>
+                                    {% else %}
+                                        <small class="text-info"><i class="bi bi-graph-up"></i> Handles non-linear patterns</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Correlation Results -->
+{% if correlation_results %}
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card custom-card shadow-sm">
+            <div class="card-header bg-gradient-info text-white">
+                <h2 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Correlation Analysis Results</h2>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Relationship</th>
+                                <th>Pearson Correlation</th>
+                                <th>Spearman Correlation</th>
+                                <th>Interpretation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in correlation_results %}
+                            <tr>
+                                <td><strong>{{ row.Relationship }}</strong></td>
+                                <td>
+                                    <span class="badge {% if row.Pearson_Correlation|abs > 0.7 %}bg-success{% elif row.Pearson_Correlation|abs > 0.3 %}bg-info{% else %}bg-secondary{% endif %}">
+                                        {{ "%.4f"|format(row.Pearson_Correlation) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {% if row.Spearman_Correlation|abs > 0.7 %}bg-success{% elif row.Spearman_Correlation|abs > 0.3 %}bg-info{% else %}bg-secondary{% endif %}">
+                                        {{ "%.4f"|format(row.Spearman_Correlation) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if row.Pearson_Correlation|abs > 0.7 %}
+                                        <small class="text-success"><i class="bi bi-check-circle"></i> Strong correlation</small>
+                                    {% elif row.Pearson_Correlation|abs > 0.3 %}
+                                        <small class="text-info"><i class="bi bi-info-circle"></i> Moderate correlation</small>
+                                    {% else %}
+                                        <small class="text-secondary"><i class="bi bi-dash-circle"></i> Weak correlation</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Feature Importance -->
+{% if feature_importance %}
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card custom-card shadow-sm">
+            <div class="card-header bg-gradient-warning text-white">
+                <h2 class="mb-0"><i class="bi bi-pie-chart"></i> Feature Importance Analysis</h2>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mt-3">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Feature</th>
+                                <th>Multiple Linear Regression (%)</th>
+                                <th>Random Forest (%)</th>
+                                <th>Gradient Boosting (%)</th>
+                                <th>Average (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for feature in feature_importance %}
+                            {% set lr_width = feature['Linear_Regression_%'] %}
+                            {% set rf_width = feature['Random_Forest_%'] %}
+                            {% set gb_width = feature['Gradient_Boosting_%'] %}
+                            {% set avg_width = feature['Average_Importance_%'] %}
+                            <tr>
+                                <td><strong>{{ feature.Feature }}</strong></td>
+                                <td>
+                                    <div class="progress" style="height: 30px;">
+                                        <div class="progress-bar bg-primary fw-bold" role="progressbar"
+                                             style="width: {{ lr_width }}%;">
+                                            {{ "%.1f"|format(lr_width) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 30px;">
+                                        <div class="progress-bar bg-success fw-bold" role="progressbar"
+                                             style="width: {{ rf_width }}%;">
+                                            {{ "%.1f"|format(rf_width) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 30px;">
+                                        <div class="progress-bar bg-info fw-bold" role="progressbar"
+                                             style="width: {{ gb_width }}%;">
+                                            {{ "%.1f"|format(gb_width) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 30px;">
+                                        <div class="progress-bar bg-warning fw-bold" role="progressbar"
+                                             style="width: {{ avg_width }}%;">
+                                            <strong>{{ "%.1f"|format(avg_width) }}%</strong>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Data Sources -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card custom-card shadow-sm">
+            <div class="card-header bg-gradient-secondary text-white">
+                <h3 class="mb-0"><i class="bi bi-database-fill"></i> Data Sources</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="border-start border-primary border-4 ps-3 bg-light rounded p-3">
+                            <h5><i class="bi bi-file-earmark-spreadsheet text-primary"></i> Chennai.csv</h5>
+                            <p class="mb-2"><strong>Content:</strong> Climate dataset containing hourly/daily temperature data for Chennai (2010-2024)</p>
+                            <p class="mb-0"><strong>Key Variable:</strong> <code>temperature_2m</code> (aggregated to monthly averages)</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border-start border-info border-4 ps-3 bg-light rounded p-3">
+                            <h5><i class="bi bi-file-earmark-data text-info"></i> Chennai_VIIRS_Monthly_Nightlights_2014_2024.csv</h5>
+                            <p class="mb-2"><strong>Content:</strong> VIIRS nighttime light intensity values (monthly, 2014-2024)</p>
+                            <p class="mb-0"><strong>Key Variables:</strong> <code>Year</code>, <code>Month</code>, <code>NightLight</code></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dataset Statistics -->
+{% if data_stats %}
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card custom-card shadow-sm">
+            <div class="card-header bg-gradient-success text-white">
+                <h2 class="mb-0"><i class="bi bi-bar-chart-line"></i> Dataset Statistics</h2>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card text-center border-primary h-100">
+                            <div class="card-body">
+                                <i class="bi bi-123 text-primary" style="font-size: 2.5rem;"></i>
+                                <h3 class="mt-3 text-primary">{{ data_stats.total_samples }}</h3>
+                                <p class="mb-0 text-muted fw-bold">Total Samples</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card text-center border-info h-100">
+                            <div class="card-body">
+                                <i class="bi bi-calendar-range text-info" style="font-size: 2.5rem;"></i>
+                                <h4 class="mt-3 text-info">{{ data_stats.year_range }}</h4>
+                                <p class="mb-0 text-muted fw-bold">Year Range</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card text-center border-warning h-100">
+                            <div class="card-body">
+                                <i class="bi bi-lightbulb text-warning" style="font-size: 2.5rem;"></i>
+                                <h4 class="mt-3 text-warning">{{ data_stats.nightlight_range }}</h4>
+                                <p class="mb-0 text-muted fw-bold">Nightlight Range</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card text-center border-danger h-100">
+                            <div class="card-body">
+                                <i class="bi bi-thermometer-half text-danger" style="font-size: 2.5rem;"></i>
+                                <h4 class="mt-3 text-danger">{{ data_stats.temp_range }}</h4>
+                                <p class="mb-0 text-muted fw-bold">Temperature Range</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Prediction Comparison Section -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card custom-card shadow-sm">
+            <div class="card-header bg-gradient-primary text-white">
+                <h3 class="mb-0"><i class="bi bi-calculator-fill"></i> Compare Model Predictions</h3>
+            </div>
+            <div class="card-body">
+                <!-- Error Alert -->
+                {% if error %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i> <strong>Error:</strong> {{ error }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endif %}
+
+                <!-- Prediction Form -->
+                <form method="POST" action="/analysis" class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label for="year" class="form-label fw-bold">
+                            <i class="bi bi-calendar"></i> Year
+                        </label>
+                        <input type="number" class="form-control form-control-lg" id="year" name="year"
+                               value="{{ prediction_input.year if prediction_input else '' }}"
+                               min="2014" step="1" required
+                               placeholder="e.g., 2025">
+                        <div class="form-text">Enter any year from 2014 onwards</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="month" class="form-label fw-bold">
+                            <i class="bi bi-calendar-month"></i> Month
+                        </label>
+                        <select class="form-select form-select-lg" id="month" name="month" required>
+                            <option value="">Select Month</option>
+                            <option value="1" {% if prediction_input and prediction_input.month == 1 %}selected{% endif %}>January</option>
+                            <option value="2" {% if prediction_input and prediction_input.month == 2 %}selected{% endif %}>February</option>
+                            <option value="3" {% if prediction_input and prediction_input.month == 3 %}selected{% endif %}>March</option>
+                            <option value="4" {% if prediction_input and prediction_input.month == 4 %}selected{% endif %}>April</option>
+                            <option value="5" {% if prediction_input and prediction_input.month == 5 %}selected{% endif %}>May</option>
+                            <option value="6" {% if prediction_input and prediction_input.month == 6 %}selected{% endif %}>June</option>
+                            <option value="7" {% if prediction_input and prediction_input.month == 7 %}selected{% endif %}>July</option>
+                            <option value="8" {% if prediction_input and prediction_input.month == 8 %}selected{% endif %}>August</option>
+                            <option value="9" {% if prediction_input and prediction_input.month == 9 %}selected{% endif %}>September</option>
+                            <option value="10" {% if prediction_input and prediction_input.month == 10 %}selected{% endif %}>October</option>
+                            <option value="11" {% if prediction_input and prediction_input.month == 11 %}selected{% endif %}>November</option>
+                            <option value="12" {% if prediction_input and prediction_input.month == 12 %}selected{% endif %}>December</option>
+                        </select>
+                        <div class="form-text">Select the month (1-12)</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="nightlight" class="form-label fw-bold">
+                            <i class="bi bi-lightbulb"></i> Nightlight Intensity
+                        </label>
+                        <input type="number" class="form-control form-control-lg" id="nightlight" name="nightlight"
+                               value="{{ prediction_input.nightlight if prediction_input else '' }}"
+                               min="0" max="100" step="0.1" required
+                               placeholder="e.g., 22.5">
+                        <div class="form-text">VIIRS nightlight intensity (typically ~10-25)</div>
+                    </div>
+
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+                            <i class="bi bi-arrow-right-circle"></i> Compare All Model Predictions
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Prediction Results Comparison -->
+                {% if predictions %}
+                {% if is_extrapolation %}
+                <div class="alert alert-warning border-warning" role="alert">
+                    <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Extrapolation Warning</h5>
+                    <p class="mb-0">
+                        <strong>This is a FUTURE PREDICTION (year > 2024).</strong> The models were trained on data from 2014-2024.
+                        Predictions beyond this period are extrapolations and may be less reliable.
+                    </p>
+                </div>
+                {% else %}
+                <div class="alert alert-info border-info" role="alert">
+                    <h5 class="alert-heading"><i class="bi bi-info-circle-fill"></i> Historical Period Prediction</h5>
+                    <p class="mb-0">
+                        This prediction is within the training data period (2014-2024). Model predictions represent
+                        interpolation between known data points.
+                    </p>
+                </div>
+                {% endif %}
+
+                <div class="alert alert-success border-success mt-3" role="alert">
+                    <h4 class="alert-heading"><i class="bi bi-check-circle-fill"></i> Prediction Input</h4>
+                    <p class="mb-0">
+                        Year = <span class="badge bg-primary">{{ prediction_input.year }}</span>,
+                        Month = <span class="badge bg-success">{{ prediction_input.month }}</span>,
+                        Nightlight = <span class="badge bg-info">{{ prediction_input.nightlight }}</span>
+                    </p>
+                </div>
+
+                <h4 class="mt-4 mb-3"><i class="bi bi-bar-chart"></i> Predictions from All Models</h4>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Model</th>
+                                <th>Predicted Temperature (°C)</th>
+                                <th>Difference from Best</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set best_pred = predictions.get(best_model, 0) %}
+                            {% for model_name, pred in predictions.items() %}
+                            <tr {% if model_name == best_model %}class="table-success fw-bold"{% endif %}>
+                                <td>
+                                    <strong>{{ model_name }}</strong>
+                                    {% if model_name == best_model %}
+                                    <span class="badge bg-success ms-2"><i class="bi bi-star-fill"></i> Best Model</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if pred == "Error" %}
+                                        <span class="badge bg-danger">Prediction Error</span>
+                                    {% else %}
+                                        <span class="fs-4 text-primary fw-bold">{{ pred }}°C</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if pred != "Error" and best_pred != "Error" and model_name != best_model %}
+                                        {% set diff = (pred - best_pred)|round(3) %}
+                                        {% if diff > 0 %}
+                                            <span class="text-danger fw-bold">+{{ diff }}°C</span>
+                                        {% elif diff < 0 %}
+                                            <span class="text-success fw-bold">{{ diff }}°C</span>
+                                        {% else %}
+                                            <span class="text-muted">0°C</span>
+                                        {% endif %}
+                                    {% elif model_name == best_model %}
+                                        <span class="badge bg-success"><i class="bi bi-trophy"></i> Reference</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if pred == "Error" %}
+                                        <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Error</span>
+                                    {% elif model_name == best_model %}
+                                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Recommended</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary"><i class="bi bi-info-circle"></i> Alternative</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
